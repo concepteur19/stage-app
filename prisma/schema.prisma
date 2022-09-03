@@ -1,0 +1,78 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum Status {
+  NEW
+  STARTED
+  ENDED
+}
+
+model User {
+  user_id       Int        @id @default(autoincrement()) 
+  email         String     @unique
+  password      String
+  username      String?
+  user_role     Role       @default(USER)
+  create_time   DateTime   @default(now())
+  update_time   DateTime   @updatedAt
+  list          List[]
+  created_task  Task[]     @relation("created by user")
+  assigned_task Task[]     @relation("assigned to user")
+  priority      Priority[]
+}
+
+model List {
+  list_id    Int      @id @default(autoincrement())
+  title      String?
+  starts_at  DateTime? 
+  ends_at    DateTime? 
+  created_at DateTime @default(now())
+  update_at  DateTime @updatedAt
+  created_by User     @relation(references: [user_id], fields: [user_id], onDelete: Cascade, onUpdate: Cascade)
+  user_id    Int
+  task       Task[]
+}
+
+model Task {
+  task_id        Int       @id @default(autoincrement())
+  task_name      String
+  duration       DateTime?
+  update         DateTime  @updatedAt
+  status         Status    @default(NEW)
+  description    String?
+  task_list      List?     @relation(fields: [list_id], references: [list_id], onDelete: Cascade, onUpdate: Cascade)
+  list_id        Int
+  created_by     User?     @relation("created by user", fields: [created_by_id], references: [user_id], onDelete: Cascade, onUpdate: Cascade)
+  created_by_id  Int
+  assigned_to    User?     @relation("assigned to user", fields: [assigned_to_id], references: [user_id], onDelete: Cascade, onUpdate: Cascade)
+  assigned_to_id Int?
+  parent_task_id Int?
+  parent_task    Task?     @relation("relation task", fields: [parent_task_id], references: [task_id], onDelete: Cascade, onUpdate: Cascade)
+  sub_task       Task[]    @relation("relation task")
+  priority       Priority? @relation(fields: [priority_id], references: [priority_id])
+  priority_id    Int?
+}
+
+model Priority {
+  priority_id Int      @id @default(autoincrement())
+  name        String?
+  degree      Int?
+  created_at  DateTime @default(now())
+  created     User     @relation(fields: [created_by], references: [user_id], onDelete: Cascade, onUpdate: Cascade)
+  created_by  Int
+  task        Task[]
+}
